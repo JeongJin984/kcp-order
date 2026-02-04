@@ -91,7 +91,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * @Valid 또는 @Validated 유효성 검사 실패 시 발생
+     * 유효성 검증 : @Valid 또는 @Validated 유효성 검사 실패 시 발생
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException e) {

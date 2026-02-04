@@ -1,6 +1,5 @@
 package kcp.product.repository;
 
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import kcp.product.service.entity.CategoryJpaEntity;
 import kcp.product.repository.jpa.CategoryJpaRepository;
 import kcp.product.service.repository.CategoryRepository;
@@ -14,7 +13,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CategoryRepositoryImpl implements CategoryRepository {
     private final CategoryJpaRepository categoryJpaRepository;
-    private final JPAQueryFactory queryFactory;
 
     @Override
     public Optional<CategoryJpaEntity> findById(Long id) {

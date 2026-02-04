@@ -4,7 +4,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import kcp.order.service.dto.OrderSearchCmd;
 import lombok.NoArgsConstructor;
 
-import static kcp.order.domain.order.entity.QOrderJpaEntity.orderJpaEntity;
+import static kcp.order.service.entity.QOrderJpaEntity.orderJpaEntity;
 
 @NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class OrderSearchPredicate {
