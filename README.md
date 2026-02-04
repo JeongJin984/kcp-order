@@ -42,14 +42,23 @@ message: 클라이언트에게 노출 가능한 상세 메시지
 ## 📂 Project Structure
 
 ```
-src/main/java/com/kcp/order
-├── common
-│   ├── exception      # GlobalExceptionHandler, BusinessException, ErrorCode
-│   └── response       # ErrorResponse, CommonResponse
-├── domain
-│   ├── order          # Order, OrderItem, Repository, Service
-│   └── product        # Product, Category, Repository, Service
-└── api                # Controllers, DTOs (Record pattern)
+kcp
+├─ common
+│  ├─ exception
+│  └─ response
+├─ config
+├─ order
+│  ├─ controller
+│  ├─ repository
+│  │  ├─ jpa
+│  │  └─ predicate
+│  └─ service
+│     ├─ dto
+│     ├─ entity
+│     └─ repository
+└─ product 
+   ├─ controller
+   ... (order와 같음)
 ```
 
 
