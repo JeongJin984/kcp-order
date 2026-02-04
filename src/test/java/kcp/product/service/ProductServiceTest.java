@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,6 +57,19 @@ class ProductServiceTest {
     }
 
     @Test
+    @DisplayName("카테고리 없이 상품 생성 시 예외 발생(CATEGORY_REQUIRED)")
+    void createProduct_noCategory_throwsException() {
+        // given
+        ProductCreateCmd cmd = new ProductCreateCmd(List.of(1L), "상품A", new BigDecimal("1000"), 10);
+        given(categoryRepository.findAllByIds(cmd.categoryId())).willReturn(Collections.emptyList());
+
+        // when & then
+        assertThatThrownBy(() -> productService.createProduct(cmd))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CATEGORY_REQUIRED);
+    }
+
+    @Test
     @DisplayName("상품 조회 성공")
     void getProduct_success() {
         // given
@@ -79,8 +93,8 @@ class ProductServiceTest {
 
         // when & then
         assertThatThrownBy(() -> productService.getProduct(productId))
-                .isInstanceOf(BusinessException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_NOT_FOUND);
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_NOT_FOUND);
     }
 
     @Test
@@ -99,5 +113,18 @@ class ProductServiceTest {
         assertThat(result.product().name()).isEqualTo(cmd.name());
         assertThat(product.getPrice()).isEqualTo(cmd.price());
         assertThat(product.getStockQuantity()).isEqualTo(cmd.stockQuantity());
+    }
+
+    @Test
+    @DisplayName("상품 수정 실패 - 대상 상품이 없으면 PRODUCT_NOT_FOUND")
+    void updateProduct_notFound_throwsException() {
+        // given
+        ProductUpdateCmd cmd = new ProductUpdateCmd(999L, "수정상품", new BigDecimal("2000"), 20, List.of(1L));
+        given(productRepository.findById(cmd.productId())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> productService.updateProduct(cmd))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_NOT_FOUND);
     }
 }

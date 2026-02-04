@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static kcp.order.service.entity.OrderStatus.*;
+
 @Entity
 @Table(name = "orders") // order는 예약어이므로 테이블명 지정
 @Getter
@@ -45,7 +47,7 @@ public class OrderJpaEntity {
     // 생성 메서드
     public static OrderJpaEntity createOrder(List<OrderItemJpaEntity> orderItems) {
         OrderJpaEntity orderJpaEntity = new OrderJpaEntity();
-        orderJpaEntity.status = OrderStatus.WAIT;
+        orderJpaEntity.status = WAIT;
         orderJpaEntity.orderDate = LocalDateTime.now();
         for (OrderItemJpaEntity item : orderItems) {
             orderJpaEntity.addOrderItem(item);
@@ -58,27 +60,50 @@ public class OrderJpaEntity {
         orderItem.assignOrder(this);
     }
 
-    // 비즈니스 로직: 주문 완료 (재고 차감 발생)
-    public void complete() {
-        if (this.status != OrderStatus.ACCEPTED) {
-            throw new InvalidOrderStatusException(this.status, OrderStatus.ACCEPTED);
+    public void updateOrderStatus(OrderStatus nextStatus) {
+        if(canTransitionTo(nextStatus)) {
+            switch (nextStatus) {
+                case ACCEPTED -> accept();
+                case COMPLETED ->complete(); // 내부에서 product.decreaseStock() 호출
+                case CANCELED -> cancel();    // 내부에서 product.increaseStock() 호출
+            }
+        } else {
+            throw new InvalidOrderStatusException(this.status, nextStatus);
         }
-        this.status = OrderStatus.COMPLETED;
+
+    }
+
+    // 비즈니스 로직: 주문 완료 (재고 차감 발생)
+    private void complete() {
+        if (this.status != ACCEPTED) {
+            throw new InvalidOrderStatusException(this.status, ACCEPTED);
+        }
+        this.status = COMPLETED;
         orderItems.forEach(OrderItemJpaEntity::reduceProductStock);
     }
 
     // 비즈니스 로직: 주문 취소 (완료 상태였다면 재고 복구)
-    public void cancel() {
-        if (this.status == OrderStatus.COMPLETED) {
+    private void cancel() {
+        if (this.status == COMPLETED) {
             orderItems.forEach(OrderItemJpaEntity::restoreProductStock);
         }
         this.status = OrderStatus.CANCELED;
     }
 
-    public void accept() {
-        if (this.status != OrderStatus.WAIT) {
-            throw new InvalidOrderStatusException(this.status, OrderStatus.WAIT);
+    private void accept() {
+        if (this.status != WAIT) {
+            throw new InvalidOrderStatusException(this.status, WAIT);
         }
-        this.status = OrderStatus.ACCEPTED;
+        this.status = ACCEPTED;
+    }
+
+    // 비즈니스 규칙: 특정 상태에서 변경 가능한지 검증
+    public boolean canTransitionTo(OrderStatus nextStatus) {
+        return switch (this.status) {
+            case WAIT -> nextStatus == ACCEPTED || nextStatus == CANCELED;
+            case ACCEPTED -> nextStatus == COMPLETED || nextStatus == CANCELED;
+            case COMPLETED -> nextStatus == CANCELED; // 이미 완료된 주문도 취소는 가능할 수 있음 (정책에 따라)
+            case CANCELED -> false; // 취소된 주문은 상태 변경 불가
+        };
     }
 }

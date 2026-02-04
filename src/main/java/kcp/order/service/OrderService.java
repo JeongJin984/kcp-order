@@ -71,17 +71,7 @@ public class OrderService {
         OrderJpaEntity order = orderRepository.findByIdWithProductAndLock(orderId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "order not found: orderId = {}", orderId));
 
-        // 1. 상태 전이 가능 여부 확인 (Enum 내 로직 활용 가능)
-        if (!order.getStatus().canTransitionTo(nextStatus)) {
-            throw new InvalidOrderStatusException(order.getStatus(), nextStatus);
-        }
-
-        // 2. 상태별 비즈니스 액션 수행
-        switch (nextStatus) {
-            case ACCEPTED -> order.accept();
-            case COMPLETED -> order.complete(); // 내부에서 product.decreaseStock() 호출
-            case CANCELED -> order.cancel();    // 내부에서 product.increaseStock() 호출
-        }
+        order.updateOrderStatus(nextStatus);
 
         return OrderDetail.from(order);
     }

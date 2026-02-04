@@ -37,7 +37,7 @@ class OrderJpaEntityTest {
         OrderJpaEntity order = OrderJpaEntity.createOrder(List.of());
 
         // when
-        order.accept();
+        order.updateOrderStatus(OrderStatus.ACCEPTED);
 
         // then
         assertThat(order.getStatus()).isEqualTo(OrderStatus.ACCEPTED);
@@ -48,10 +48,10 @@ class OrderJpaEntityTest {
     void accept_invalidStatus_throwsException() {
         // given
         OrderJpaEntity order = OrderJpaEntity.createOrder(List.of());
-        order.accept(); // ACCEPTED 상태로 변경
+        order.updateOrderStatus(OrderStatus.ACCEPTED); // ACCEPTED 상태로 변경
 
         // when & then
-        assertThatThrownBy(order::accept)
+        assertThatThrownBy(() -> order.updateOrderStatus(OrderStatus.ACCEPTED))
                 .isInstanceOf(InvalidOrderStatusException.class);
     }
 
@@ -62,10 +62,10 @@ class OrderJpaEntityTest {
         ProductJpaEntity product = createProduct("상품A", 1000, 10);
         OrderItemJpaEntity orderItem = OrderItemJpaEntity.createOrderItem(product, new BigDecimal("1000"), 2);
         OrderJpaEntity order = OrderJpaEntity.createOrder(List.of(orderItem));
-        order.accept();
+        order.updateOrderStatus(OrderStatus.ACCEPTED);
 
         // when
-        order.complete();
+        order.updateOrderStatus(OrderStatus.COMPLETED);
 
         // then
         assertThat(order.getStatus()).isEqualTo(OrderStatus.COMPLETED);
@@ -79,7 +79,7 @@ class OrderJpaEntityTest {
         OrderJpaEntity order = OrderJpaEntity.createOrder(List.of());
 
         // when & then
-        assertThatThrownBy(order::complete)
+        assertThatThrownBy(() -> order.updateOrderStatus(OrderStatus.COMPLETED))
                 .isInstanceOf(InvalidOrderStatusException.class);
     }
 
@@ -90,7 +90,7 @@ class OrderJpaEntityTest {
         OrderJpaEntity order = OrderJpaEntity.createOrder(List.of());
 
         // when
-        order.cancel();
+        order.updateOrderStatus(OrderStatus.CANCELED);
 
         // then
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
@@ -103,12 +103,12 @@ class OrderJpaEntityTest {
         ProductJpaEntity product = createProduct("상품A", 1000, 10);
         OrderItemJpaEntity orderItem = OrderItemJpaEntity.createOrderItem(product, new BigDecimal("1000"), 2);
         OrderJpaEntity order = OrderJpaEntity.createOrder(List.of(orderItem));
-        order.accept();
-        order.complete();
+        order.updateOrderStatus(OrderStatus.ACCEPTED);
+        order.updateOrderStatus(OrderStatus.COMPLETED);
         assertThat(product.getStockQuantity()).isEqualTo(8);
 
         // when
-        order.cancel();
+        order.updateOrderStatus(OrderStatus.CANCELED);
 
         // then
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELED);
