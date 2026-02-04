@@ -1,0 +1,23 @@
+{
+  "properties": [
+    {
+      "name": "spring.datasource.order.hikari.jdbc-url",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.order.hikari.jdbc-url."
+    },
+    {
+      "name": "spring.datasource.order.hikari.username",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.order.hikari.username."
+    },
+    {
+      "name": "spring.datasource.order.hikari.password",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.order.hikari.password."
+    },
+    {
+      "name": "spring.datasource.order.hikari.driver-class-name",
+      "type": "java.lang.String",
+      "description": "Description for spring.datasource.order.hikari.driver-class-name."
+    }
+  ] }
