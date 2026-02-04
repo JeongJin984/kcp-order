@@ -1,6 +1,5 @@
 package kcp.order.domain.order.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import kcp.order.common.exception.BusinessException;
 import kcp.order.common.exception.ErrorCode;
 import kcp.order.common.exception.InvalidOrderStatusException;

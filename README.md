@@ -22,6 +22,37 @@ Database: H2 (Runtime)
 Build Tool: Gradle
 ```
 
+## 📝 API Response Format
+
+성공적인 응답 외에, 에러 발생 시 일관된 JSON 구조를 반환합니다.
+Error Response Example
+JSON
+
+{
+"code": "INVALID_INPUT_VALUE",
+"message": "상품명은 필수이며 공백일 수 없습니다."
+}
+
+```
+code: 서버에서 정의한 에러 식별 코드 (예: STOCK_SHORTAGE, INVALID_INPUT_VALUE)
+
+message: 클라이언트에게 노출 가능한 상세 메시지
+```
+
+## 📂 Project Structure
+
+```
+src/main/java/com/kcp/order
+├── common
+│   ├── exception      # GlobalExceptionHandler, BusinessException, ErrorCode
+│   └── response       # ErrorResponse, CommonResponse
+├── domain
+│   ├── order          # Order, OrderItem, Repository, Service
+│   └── product        # Product, Category, Repository, Service
+└── api                # Controllers, DTOs (Record pattern)
+```
+
+
 ## 🏗 Key Architecture & Decisions
 
 ### 1. JPA 1:N 관계 페이징 성능 최적화 (Collection Paging)
@@ -85,33 +116,4 @@ Build Tool: Gradle
 2. 정합성: 트랜잭션 내에서 엔티티를 조회 후 상태 변경 가능 여부를 검증하는 도메인 로직을 수행하여, 논리적으로 불가능한 상태 전이(예: 취소된 주문의 배송 처리)를 원천 차단했습니다.
 
 
-## 📝 API Response Format
-
-성공적인 응답 외에, 에러 발생 시 일관된 JSON 구조를 반환합니다.
-Error Response Example
-JSON
-
-{
-"code": "INVALID_INPUT_VALUE",
-"message": "상품명은 필수이며 공백일 수 없습니다."
-}
-
-```
-code: 서버에서 정의한 에러 식별 코드 (예: STOCK_SHORTAGE, INVALID_INPUT_VALUE)
-
-message: 클라이언트에게 노출 가능한 상세 메시지
-```
-
-## 📂 Project Structure
-
-```
-src/main/java/com/kcp/order
-├── common
-│   ├── exception      # GlobalExceptionHandler, BusinessException, ErrorCode
-│   └── response       # ErrorResponse, CommonResponse
-├── domain
-│   ├── order          # Order, OrderItem, Repository, Service
-│   └── product        # Product, Category, Repository, Service
-└── api                # Controllers, DTOs (Record pattern)
-```
 
