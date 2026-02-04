@@ -6,6 +6,7 @@ import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kcp.order.domain.product.dto.ProductDetail;
 import kcp.order.domain.product.dto.ProductSearchCmd;
+import kcp.order.domain.product.entity.CategoryJpaEntity;
 import kcp.order.domain.product.entity.ProductJpaEntity;
 import kcp.order.domain.product.repository.ProductRepository;
 import kcp.order.infra.rdb.product.jpa.ProductJpaRepository;
@@ -58,66 +59,46 @@ public class ProductRepositoryImpl implements ProductRepository {
 
     @Override
     public Page<ProductDetail> findSliceOrderByCreatedAt(ProductSearchCmd command, Pageable page) {
-        // 1단계: 상품 기본 정보 조회 (페이징)
-        List<ProductRow> productRows = queryFactory
-            .select(Projections.constructor(ProductRow.class,
-                productJpaEntity.id,
-                productJpaEntity.name,
-                productJpaEntity.price,
-                productJpaEntity.stockQuantity,
-                productJpaEntity.createdAt
-            ))
-            .from(productJpaEntity)
+
+        // 1) Product Entity 조회 (페이징 적용)
+        // 컬렉션(OneToMany) 페치 조인 없이 본체만 가져옵니다.
+        List<ProductJpaEntity> products = queryFactory
+            .selectFrom(productJpaEntity)
             .where(ProductSearchPredict.from(command))
             .orderBy(productJpaEntity.createdAt.desc(), productJpaEntity.id.desc())
             .offset(page.getOffset())
             .limit(page.getPageSize())
             .fetch();
 
-        if (productRows.isEmpty()) return Page.empty();
-
-        List<Long> productIds = productRows.stream().map(ProductRow::id).toList();
-
-        // 2단계: 카테고리 정보 조회 (transform 대신 일반 fetch 사용)
-        // NoSuchMethodError를 피하기 위해 ResultTransformer를 타지 않습니다.
-        List<CategoryRow> categoryRows = queryFactory
-            .select(Projections.constructor(CategoryRow.class,
-                categoryJpaEntity.id,
-                categoryJpaEntity.name,
-                categoryJpaEntity.createdAt,
-                productCategoryJpaEntity.product.id // 그룹핑을 위한 상품 ID 포함
-            ))
-            .from(productCategoryJpaEntity)
-            .join(productCategoryJpaEntity.category, categoryJpaEntity)
-            .where(productCategoryJpaEntity.product.id.in(productIds))
-            .fetch();
-
-        // 3단계: 자바 메모리에서 그룹핑 수행
-        Map<Long, List<ProductDetail.Category>> categoriesByProductId = categoryRows.stream()
-            .collect(Collectors.groupingBy(
-                CategoryRow::productId,
-                Collectors.mapping(r -> new ProductDetail.Category(
-                    r.id(), r.name(), r.createdAt()
-                ), Collectors.toList())
-            ));
-
-        // 4단계: 최종 DTO 조립
-        List<ProductDetail> products = productRows.stream()
-            .map(row -> new ProductDetail(
-                categoriesByProductId.getOrDefault(row.id(), List.of()),
+        // 2) Entity -> DTO 변환 (자동 최적화)
+        List<ProductDetail> content = products.stream()
+            .map(p -> new ProductDetail(
+                // 여기서 p.getProductCategories()를 호출할 때 Batch Fetch 발동 (IN 쿼리)
+                p.getProductCategories().stream()
+                    .map(pc -> {
+                        // 여기서 pc.getCategory()를 호출할 때도 Batch Fetch 발동 가능
+                        // (이미 영속성 컨텍스트에 없다면 카테고리 ID들을 모아서 IN 쿼리 실행)
+                        CategoryJpaEntity category = pc.getCategory();
+                        return new ProductDetail.Category(
+                            category.getId(),
+                            category.getName(),
+                            category.getCreatedAt()
+                        );
+                    })
+                    .collect(Collectors.toList()),
                 new ProductDetail.Product(
-                    row.id(), row.name(), row.price(), row.stockQuantity(), row.createdAt()
+                    p.getId(), p.getName(), p.getPrice(), p.getStockQuantity(), p.getCreatedAt()
                 )
             ))
-            .toList();
+            .collect(Collectors.toList());
 
-        // 5단계: Count 쿼리 최적화
+        // 3) Count 쿼리
         JPAQuery<Long> countQuery = queryFactory
             .select(productJpaEntity.count())
             .from(productJpaEntity)
             .where(ProductSearchPredict.from(command));
 
-        return PageableExecutionUtils.getPage(products, page, countQuery::fetchOne);
+        return PageableExecutionUtils.getPage(content, page, countQuery::fetchOne);
     }
 
     @Override
@@ -128,25 +109,4 @@ public class ProductRepositoryImpl implements ProductRepository {
             .where(ProductSearchPredict.from(command)) // byCategoryId는 EXISTS 권장 (아래 참고)
             .fetchOne();
     }
-
-    /**
-     * Book 1차 조회용 row
-     */
-    public record ProductRow(
-        Long id,
-        String name,
-        BigDecimal price,
-        int stockQuantity,
-        LocalDateTime createdAt
-    ) {}
-
-    /**
-     * Category 2차 조회용 row
-     */
-    public record CategoryRow(
-        Long id,
-        String name,
-        LocalDateTime createdAt,
-        Long productId
-    ) {}
 }

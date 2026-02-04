@@ -53,7 +53,7 @@ public class OrderRepositoryImpl implements OrderRepository {
             queryFactory
                 .selectFrom(orderJpaEntity)
                 .join(orderJpaEntity.orderItems, orderItemJpaEntity).fetchJoin()
-                .join(orderItemJpaEntity.product, productJpaEntity)
+                .join(orderItemJpaEntity.product, productJpaEntity).fetchJoin()
                 .where(orderJpaEntity.id.eq(id))
                 .distinct()
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
@@ -64,63 +64,44 @@ public class OrderRepositoryImpl implements OrderRepository {
 
     @Override
     public Page<OrderDetail> findSliceOrderByOrderDate(OrderSearchCmd cmd, Pageable page) {
-        // 1) Book slice (정렬/커서/limit은 여기서만)
-        List<Long> orderIds = queryFactory
-            .select(orderJpaEntity.id)
-            .from(orderJpaEntity)
-            .where(OrderSearchPredicate.from(cmd)) // byCategoryId는 EXISTS 권장 (아래 참고)
+
+        // 1) Order Entity 조회 (ToOne 관계만 Fetch Join 가능)
+        // 컬렉션(OneToMany)은 Fetch Join 하지 않습니다 (데이터 뻥튀기 방지)
+        List<OrderJpaEntity> orders = queryFactory
+            .selectFrom(orderJpaEntity)
+            .where(OrderSearchPredicate.from(cmd))
             .orderBy(orderJpaEntity.orderDate.desc(), orderJpaEntity.id.desc())
             .offset(page.getOffset())
             .limit(page.getPageSize())
             .fetch();
 
-        if (orderIds.isEmpty()) return Page.empty();
-
-// 2단계: transform 대신 fetch() 사용
-        List<OrderProductRow> orderRows = queryFactory
-            .select(Projections.constructor(OrderProductRow.class,
-                orderJpaEntity.id,
-                orderJpaEntity.status,
-                orderJpaEntity.orderDate,
-                productJpaEntity.id,
-                productJpaEntity.name,
-                orderItemJpaEntity.count,
-                orderItemJpaEntity.orderPrice
+        // 2) Entity -> DTO 변환
+        // 이 시점에 orders.stream().map(...)을 할 때,
+        // order.getOrderItems()를 호출하는 순간 Hibernate가
+        // 설정한 batch_size 만큼의 ID를 모아서 'IN' 쿼리로 한방에 가져옵니다.
+        List<OrderDetail> content = orders.stream()
+            .map(order -> new OrderDetail(
+                order.getId(),
+                order.getStatus(),
+                order.getOrderDate(),
+                order.getOrderItems().stream() // 여기서 배치 로딩 발동 (N+1 문제 해결)
+                    .map(item -> new OrderDetail.OrderItem(
+                        item.getProduct().getId(),
+                        item.getProduct().getName(),
+                        item.getCount(),
+                        item.getOrderPrice()
+                    ))
+                    .collect(Collectors.toList())
             ))
-            .from(orderJpaEntity)
-            .innerJoin(orderJpaEntity.orderItems, orderItemJpaEntity)
-            .innerJoin(orderItemJpaEntity.product, productJpaEntity)
-            .where(orderJpaEntity.id.in(orderIds))
-            .fetch(); // transform()을 제거하고 List로 직접 받음
+            .collect(Collectors.toList());
 
-        // 3단계: 자바 Stream으로 그룹화 (기존 transform이 하던 일을 자바가 수행)
-        Map<Long, List<OrderDetail.OrderItem>> itemsMap = orderRows.stream()
-            .collect(Collectors.groupingBy(
-                OrderProductRow::orderId,
-                Collectors.mapping(r -> new OrderDetail.OrderItem(
-                    r.productId(), r.productName(), r.count(), r.orderPrice()
-                ), Collectors.toList())
-            ));
-
-        List<OrderDetail> orders = orderIds.stream()
-            .map(id -> {
-                OrderProductRow first = orderRows.stream()
-                    .filter(r -> r.orderId().equals(id)).findFirst().orElse(null);
-                return first == null ? null : new OrderDetail(
-                    first.orderId(), first.status(), first.orderDate(), itemsMap.getOrDefault(id, List.of())
-                );
-            })
-            .filter(Objects::nonNull)
-            .toList();
-
-        // 4) Count 쿼리 최적화 및 Page 객체 생성
-        // PageableExecutionUtils는 내부적으로 (첫 페이지 & 결과 < pageSize)인 경우 count 쿼리를 생략합니다.
+        // 3) Count 쿼리
         JPAQuery<Long> countQuery = queryFactory
             .select(orderJpaEntity.count())
             .from(orderJpaEntity)
             .where(OrderSearchPredicate.from(cmd));
 
-        return PageableExecutionUtils.getPage(orders, page, countQuery::fetchOne);
+        return PageableExecutionUtils.getPage(content, page, countQuery::fetchOne);
     }
 
     @Override
@@ -131,14 +112,4 @@ public class OrderRepositoryImpl implements OrderRepository {
             .where(OrderSearchPredicate.from(command)) // byCategoryId는 EXISTS 권장 (아래 참고)
             .fetchOne();
     }
-
-    public record OrderProductRow(
-        Long orderId,
-        OrderStatus status,
-        LocalDateTime orderDate,
-        Long productId,
-        String productName,
-        int count,
-        BigDecimal orderPrice
-    ) {}
 }
