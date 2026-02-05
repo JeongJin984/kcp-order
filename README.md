@@ -1,8 +1,6 @@
 # Order & Product Management System
 
-지금까지 우리가 함께 설계하고 고민했던 기술적 의사결정, 트러블슈팅, 그리고 아키텍처 철학을 담은 고품질 README.md 초안입니다.
-
-과제 제출용이나 포트폴리오용으로 사용할 수 있도록 "**어떤 문제를 만났고, 어떻게 해결했는지**"를 강조하여 작성했습니다.
+"**어떤 문제를 만났고, 어떻게 해결했는지**"를 강조하여 작성했습니다.
 
 ## 📦 Order & Product Management System
 
@@ -13,7 +11,7 @@ Spring Boot 3.x와 JPA를 기반으로 구축한 주문 및 상품 관리 API �
 ```
 Java: 21
 
-Framework: Spring Boot 3.x
+Framework: Spring Boot 3.5.10
 
 ORM: Spring Data JPA, QueryDSL 5.0.0 (Jakarta)
 
@@ -147,8 +145,8 @@ kcp
 
 **2. 개선방안** : Redis 기반 멱등성(Idempotency) 보장
 
-동일한 요청(Request)이 여러 번 수행되더라도 결과가 달라지지 않는 성질인 멱등성을 보장하기 위해, 고속의 In-Memory DB인 Redis를 **멱등성 키 저장소(Idempotency Key Store)로** 활용했습니다.
-
+동일한 요청(Request)이 여러 번 수행되더라도 결과가 달라지지 않는 성질인 멱등성을 보장하기 위해, 고속의 In-Memory DB인 Redis를 **멱등성 키 저장소(Idempotency Key Store)로** 활용할 수 있습니다.
+ 
 1. Key 생성: 클라이언트는 주문 요청 시 고유한 Idempotency-Key(UUID 등)를 헤더에 포함하여 전송합니다.
    - 키는 계층 형태로 구성하여 조회 성능을 최적화합니다.
 2. 중복 검사 (Atomic Operation): 서버는 요청을 받자마자 Redis의 SETNX (Set if Not Exists) 명령어를 사용하여 키 저장을 시도합니다.
