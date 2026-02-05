@@ -124,7 +124,7 @@ class OrderServiceTest {
         // given
         Long orderId = 1L;
         OrderJpaEntity order = OrderJpaEntity.createOrder(List.of());
-        given(orderRepository.findByIdWithProductAndLock(orderId)).willReturn(Optional.of(order));
+        given(orderRepository.findByIdAndLock(orderId)).willReturn(Optional.of(order));
 
         // when
         OrderDetail result = orderService.changeStatus(orderId, OrderStatus.ACCEPTED);
@@ -138,7 +138,7 @@ class OrderServiceTest {
     void changeStatus_orderNotFound_throwsException() {
         // given
         Long orderId = 999L;
-        given(orderRepository.findByIdWithProductAndLock(orderId)).willReturn(Optional.empty());
+        given(orderRepository.findByIdAndLock(orderId)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> orderService.changeStatus(orderId, OrderStatus.ACCEPTED))
@@ -152,7 +152,7 @@ class OrderServiceTest {
         // given
         Long orderId = 1L;
         OrderJpaEntity order = OrderJpaEntity.createOrder(List.of()); // WAIT
-        given(orderRepository.findByIdWithProductAndLock(orderId)).willReturn(Optional.of(order));
+        given(orderRepository.findByIdAndLock(orderId)).willReturn(Optional.of(order));
 
         // when & then
         assertThatThrownBy(() -> orderService.changeStatus(orderId, OrderStatus.COMPLETED))
@@ -172,7 +172,7 @@ class OrderServiceTest {
         // WAIT -> ACCEPTED (상태 변경을 위해 미리 설정)
         order.updateOrderStatus(OrderStatus.ACCEPTED);
         
-        given(orderRepository.findByIdWithProductAndLock(orderId)).willReturn(Optional.of(order));
+        given(orderRepository.findByIdAndLock(orderId)).willReturn(Optional.of(order));
 
         // when & then
         assertThatThrownBy(() -> orderService.changeStatus(orderId, OrderStatus.COMPLETED))

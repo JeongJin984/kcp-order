@@ -97,7 +97,7 @@ public class OrderService {
      */
     @Transactional
     public OrderDetail changeStatus(Long orderId, OrderStatus nextStatus) {
-        OrderJpaEntity order = orderRepository.findByIdWithProductAndLock(orderId)
+        OrderJpaEntity order = orderRepository.findByIdAndLock(orderId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "order not found: orderId = {}", orderId));
 
         // [핵심] 재고 변경이 가능한 상태 변경(COMPLETED/CANCELED 등)이라면

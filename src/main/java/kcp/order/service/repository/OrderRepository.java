@@ -14,7 +14,7 @@ public interface OrderRepository {
     Optional<OrderJpaEntity> findById(Long id);
     OrderJpaEntity save(OrderJpaEntity order);
     OrderJpaEntity saveAndFlush(OrderJpaEntity order);
-    Optional<OrderJpaEntity> findByIdWithProductAndLock(Long id);
+    Optional<OrderJpaEntity> findByIdAndLock(Long id);
     Page<OrderDetail> findSliceOrderByOrderDate(OrderSearchCmd cmd, Pageable page);
     Long count(OrderSearchCmd command);
 }

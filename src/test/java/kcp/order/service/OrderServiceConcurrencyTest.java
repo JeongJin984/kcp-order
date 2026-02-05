@@ -58,7 +58,11 @@ class OrderServiceConcurrencyTest {
         }
         em.clear(); // 영속성 컨텍스트를 비워 스레드들이 최신 DB 데이터를 조회하도록 함
 
-        // when
+        /*
+         * when
+         * CountDownLatch : 모든 스레드를 동시에 출발시키고(개시), 모든 작업이 끝날 때까지 기다리는(종료 대기)
+         * 총 10번의 재고 차감 시도
+         */
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch endLatch = new CountDownLatch(threadCount);
@@ -78,8 +82,8 @@ class OrderServiceConcurrencyTest {
             });
         }
 
-        startLatch.countDown();
-        endLatch.await();
+        startLatch.countDown(); // 모든 스레드 개시
+        endLatch.await();       // 종료 대기
         executorService.shutdown();
 
         // then
@@ -107,7 +111,11 @@ class OrderServiceConcurrencyTest {
         Long orderId = orderRepository.saveAndFlush(order).getId();
         em.clear();
 
-        // when
+        /*
+         * when
+         * CountDownLatch : 모든 스레드를 동시에 출발시키고(개시), 모든 작업이 끝날 때까지 기다리는(종료 대기)
+         * 총 5번의 주문 상태 변경 시도
+         */
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger successCount = new AtomicInteger();
@@ -117,8 +125,8 @@ class OrderServiceConcurrencyTest {
                 try {
                     orderService.changeStatus(orderId, OrderStatus.COMPLETED);
                     successCount.incrementAndGet();
-                } catch (Exception ignored) {
-                    // 중복 요청 시 발생할 예외 (예: IllegalStateException 등)
+                } catch (Exception e) {
+                    System.err.println("Error: " + e.getMessage());
                 } finally {
                     latch.countDown();
                 }

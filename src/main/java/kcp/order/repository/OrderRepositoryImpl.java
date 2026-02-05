@@ -44,7 +44,7 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
-    public Optional<OrderJpaEntity> findByIdWithProductAndLock(Long id) {
+    public Optional<OrderJpaEntity> findByIdAndLock(Long id) {
         return Optional.ofNullable(
             queryFactory
                 .selectFrom(orderJpaEntity)
