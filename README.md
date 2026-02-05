@@ -1,10 +1,21 @@
 # Order & Product Management System
 
+해당 프로젝트는 과제 제출을 위해 작성되었습니다. 
+
 "**어떤 문제를 만났고, 어떻게 해결했는지**"를 강조하여 작성했습니다.
 
 ## 📦 Order & Product Management System
 
-Spring Boot 3.x와 JPA를 기반으로 구축한 주문 및 상품 관리 API 서버입니다. 대규모 트래픽을 고려한 인덱스 설계, Hibernate 6 환경에서의 QueryDSL 호환성 문제 해결, 그리고 견고한 예외 처리 전략에 중점을 두었습니다.
+Spring Boot 3.5.10와 JPA를 기반으로 구축한 주문 및 상품 관리 API 서버입니다. 대규모 트래픽을 고려한 인덱스 설계, Hibernate 6 환경에서의 QueryDSL 호환성 문제 해결, 그리고 견고한 예외 처리 전략에 중점을 두었습니다.
+
+### 실행 방법
+
+1. intellij를 활용하여 KcpOrderApplication을 실행합니다.
+
+혹은,
+
+1. gradle build
+
 
 ## 🛠 Tech Stack
 
@@ -15,7 +26,7 @@ Framework: Spring Boot 3.5.10
 
 ORM: Spring Data JPA, QueryDSL 5.0.0 (Jakarta)
 
-Database: H2 (Runtime)
+Database: H2 (Runtime, in-memory)
 
 Build Tool: Gradle
 ```
@@ -71,7 +82,7 @@ kcp
 **해결 전략:** ToOne만 페치 조인 + 컬렉션은 지연 로딩 (Batch Size 자동 최적화)
 - 엔티티 조회 후 DTO 변환 시점(Getter 호출 시)에 Batch Size 설정에 의해 최적화된 쿼리가 나갑니다.
 
-**분석:** default_batch_fetch_size: 1000 설정 시, 페이지 사이즈가 10개라면 다음과 같이 쿼리가 실행
+**분석:** default_batch_fetch_size: 100 설정 시, 페이지 사이즈가 10개라면 다음과 같이 쿼리가 실행
 1. Main Query: SELECT * FROM orders LIMIT 10 (부모 조회)
 2. Lazy Loading: 코드가 루프를 돌며 order.getOrderItems()에 접근하는 순간,
 3. Batch Query: Hibernate가 메모리에 있는 10개의 Order ID를 모아서 단 1번의 IN 쿼리를 전송합니다.
@@ -137,10 +148,10 @@ kcp
 - **Distributed System:** MSA 환경에서 메시지 큐의 At-least-once 특성으로 인해 메시지가 중복 전달되는 경우.
 
 
-- 🚨발생 가능한 위험:
-  - 중복 결제: 하나의 주문에 대해 돈이 두 번 빠져나감.
-  - 재고 오류: 실제 상품은 1개인데 재고가 2개 차감됨.
-  - 데이터 오염: 동일한 주문 데이터가 DB에 중복 적재됨.
+🚨발생 가능한 위험:
+- 중복 결제: 하나의 주문에 대해 돈이 두 번 빠져나감.
+- 재고 오류: 실제 상품은 1개인데 재고가 2개 차감됨.
+- 데이터 오염: 동일한 주문 데이터가 DB에 중복 적재됨.
 
 
 **2. 개선방안** : Redis 기반 멱등성(Idempotency) 보장
@@ -201,7 +212,7 @@ public OrderResponse createOrder(OrderRequest request, String idempotencyKey) {
     // 3. MultiLock 생성
     RLock[] locks = productIds.stream()
         .map(id -> redissonClient.getLock("lock:product:" + id))
-        .toArray(RLock[]::new);
+        .toArray(Object[]::new);
 
     RLock multiLock = redissonClient.getMultiLock(locks);
 
@@ -227,7 +238,7 @@ public OrderResponse createOrder(OrderRequest request, String idempotencyKey) {
     }
 }
 ```
-
+ 
 **4. 장기 대책 : Write Back 전략에 대해서**
 
 데이터를 변경할 때 캐시(Cache)에만 먼저 반영하고, 실제 데이터베이스(DB)에는 나중에 배치(Batch)로 모아서 업데이트하는 방식입니다. 

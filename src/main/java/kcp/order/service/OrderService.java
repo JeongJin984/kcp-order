@@ -17,7 +17,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -47,18 +50,45 @@ public class OrderService {
      */
     @Transactional
     public OrderDetail registerOrder(OrderCreateCmd request) {
-        List<OrderItemJpaEntity> orderItems = request.items().stream()
-            .map(itemReq -> {
-                // 비관적 락을 적용하여 상품 조회 (동시성 확보)
-                ProductJpaEntity product = productRepository.findByIdWithLock(itemReq.productId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "product not found: productId = {}", itemReq.productId()));
+        // 1. 요청 내 상품 ID별로 수량 합산 (중복 제거 효과)
+        // Map<Long, Integer> : productId -> totalCount
+        Map<Long, Integer> productCountMap = request.items().stream()
+            .collect(Collectors.groupingBy(
+                OrderCreateCmd.OrderItem::productId,
+                Collectors.summingInt(OrderCreateCmd.OrderItem::count)
+            ));
 
-                // 주문 상품 엔티티 생성 (이 시점엔 재고 차감 X, 생성만 함)
-                return OrderItemJpaEntity.createOrderItem(product, product.getPrice(), itemReq.count());
+        List<Long> requestedIds = new ArrayList<>(productCountMap.keySet());
+
+        // 2. IN 절 일괄 조회 (중복 없는 ID 리스트로 조회)
+        List<ProductJpaEntity> products = productRepository.findAllByIds(requestedIds);
+
+        // 3. 존재하지 않는 상품이 있는지 검증
+        if (products.size() != requestedIds.size()) {
+            List<Long> foundIds = products.stream()
+                .map(ProductJpaEntity::getId)
+                .toList();
+
+            // 요청한 ID 중 DB에 없는 것들만 필터링
+            List<Long> missingIds = requestedIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "존재하지 않는 상품 ID가 포함되어 있습니다: " + missingIds);
+        }
+
+        // 4. 주문 상세 엔티티 생성
+        List<OrderItemJpaEntity> orderItems = products.stream()
+            .map(product -> {
+                // 합산된 수량 가져오기
+                int totalCount = productCountMap.get(product.getId());
+                return OrderItemJpaEntity.createOrderItem(product, product.getPrice(), totalCount);
             })
             .toList();
 
+        // 5. 주문 저장
         OrderJpaEntity order = orderRepository.save(OrderJpaEntity.createOrder(orderItems));
+
         return OrderDetail.from(order);
     }
 

@@ -89,4 +89,14 @@ public class ProductJpaEntity {
         this.stockQuantity += quantity;
     }
 
+    public void updateProductNotNull(String name, BigDecimal price, Integer stockQuantity, List<CategoryJpaEntity> categories) {
+        if(name != null) this.name = name;
+        if(price != null) this.price = price;
+        if(stockQuantity != null) this.stockQuantity = stockQuantity;
+        if(categories != null) {
+            if(this.productCategories == null) this.productCategories = new ArrayList<>();
+            else this.productCategories.clear();
+            categories.forEach(this::addCategory);
+        }
+    }
 }

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -47,7 +48,8 @@ class OrderServiceTest {
         // given
         OrderCreateCmd cmd = new OrderCreateCmd(List.of(new OrderCreateCmd.OrderItem(1L, 2)));
         ProductJpaEntity product = createProduct("상품A", 1000, 10);
-        given(productRepository.findByIdWithLock(1L)).willReturn(Optional.of(product));
+        ReflectionTestUtils.setField(product, "id", 1L);
+        given(productRepository.findAllByIds(List.of(1L))).willReturn(List.of(product));
         given(orderRepository.save(any(OrderJpaEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
@@ -64,9 +66,10 @@ class OrderServiceTest {
     void registerOrder_doesNotDecreaseStock() {
         // given
         ProductJpaEntity product = createProduct("상품A", 1000, 10);
+        ReflectionTestUtils.setField(product, "id", 1L);
         OrderCreateCmd cmd = new OrderCreateCmd(List.of(new OrderCreateCmd.OrderItem(1L, 2)));
 
-        given(productRepository.findByIdWithLock(1L)).willReturn(Optional.of(product));
+        given(productRepository.findAllByIds(List.of(1L))).willReturn(List.of(product));
         given(orderRepository.save(any(OrderJpaEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
@@ -85,10 +88,11 @@ class OrderServiceTest {
             new OrderCreateCmd.OrderItem(2L, 1)
         ));
         ProductJpaEntity product1 = createProduct("상품A", 1000, 10);
+        ReflectionTestUtils.setField(product1, "id", 1L);
         ProductJpaEntity product2 = createProduct("상품B", 2000, 5);
+        ReflectionTestUtils.setField(product2, "id", 2L);
 
-        given(productRepository.findByIdWithLock(1L)).willReturn(Optional.of(product1));
-        given(productRepository.findByIdWithLock(2L)).willReturn(Optional.of(product2));
+        given(productRepository.findAllByIds(List.of(1L, 2L))).willReturn(List.of(product1, product2));
         given(orderRepository.save(any(OrderJpaEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
@@ -97,8 +101,7 @@ class OrderServiceTest {
         // then
         assertThat(result.orderStatus()).isEqualTo(OrderStatus.WAIT);
         assertThat(result.items()).hasSize(2);
-        verify(productRepository).findByIdWithLock(1L);
-        verify(productRepository).findByIdWithLock(2L);
+        verify(productRepository).findAllByIds(List.of(1L, 2L));
         verify(orderRepository).save(any(OrderJpaEntity.class));
     }
 
@@ -107,7 +110,7 @@ class OrderServiceTest {
     void registerOrder_productNotFound_throwsException() {
         // given
         OrderCreateCmd cmd = new OrderCreateCmd(List.of(new OrderCreateCmd.OrderItem(1L, 2)));
-        given(productRepository.findByIdWithLock(1L)).willReturn(Optional.empty());
+        given(productRepository.findAllByIds(List.of(1L))).willReturn(List.of());
 
         // when & then
         assertThatThrownBy(() -> orderService.registerOrder(cmd))

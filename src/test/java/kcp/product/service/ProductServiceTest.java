@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -24,6 +25,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -104,6 +106,7 @@ class ProductServiceTest {
         ProductUpdateCmd cmd = new ProductUpdateCmd(1L, "수정상품", new BigDecimal("2000"), 20, List.of(1L));
         ProductJpaEntity product = ProductJpaEntity.createProduct("상품A", new BigDecimal("1000"), 10, List.of(CategoryJpaEntity.createTestEmptyCategory()));
         given(productRepository.findById(cmd.productId())).willReturn(Optional.of(product));
+        given(categoryRepository.findAllByIds(anyList())).willReturn(List.of(CategoryJpaEntity.createTestEmptyCategory()));
         given(productRepository.save(any(ProductJpaEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
@@ -116,15 +119,43 @@ class ProductServiceTest {
     }
 
     @Test
-    @DisplayName("상품 수정 실패 - 대상 상품이 없으면 PRODUCT_NOT_FOUND")
+    @DisplayName("상품 수정 실패 - 대상 상품이 존재하지 않으면 PRODUCT_NOT_FOUND 예외가 발생한다")
     void updateProduct_notFound_throwsException() {
         // given
-        ProductUpdateCmd cmd = new ProductUpdateCmd(999L, "수정상품", new BigDecimal("2000"), 20, List.of(1L));
-        given(productRepository.findById(cmd.productId())).willReturn(Optional.empty());
+        Long invalidProductId = 999L;
+        ProductUpdateCmd cmd = new ProductUpdateCmd(invalidProductId, "수정상품", new BigDecimal("2000"), 20, List.of(1L));
+
+        given(productRepository.findById(invalidProductId)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> productService.updateProduct(cmd))
             .isInstanceOf(BusinessException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("상품 수정 실패 - 일부 카테고리 ID가 존재하지 않으면 CATEGORY_NOT_FOUND 예외와 누락된 ID 목록을 반환한다")
+    void updateProduct_categoryNotFound_throwsException() {
+        // given
+        Long productId = 1L;
+        List<Long> requestedCategoryIds = List.of(10L, 20L, 30L);
+        ProductUpdateCmd cmd = new ProductUpdateCmd(productId, "수정상품", new BigDecimal("2000"), 20, requestedCategoryIds);
+
+        // 상품은 존재함
+        ProductJpaEntity product = ProductJpaEntity.createProduct("상품A", new BigDecimal("1000"), 10, List.of(CategoryJpaEntity.createTestEmptyCategory()));
+
+        ReflectionTestUtils.setField(product, "id", productId);
+        given(productRepository.findById(productId)).willReturn(Optional.of(product));
+
+        // 카테고리는 10L 하나만 존재 (20L, 30L은 누락됨)
+        CategoryJpaEntity category10 = CategoryJpaEntity.createTestEmptyCategory();
+        ReflectionTestUtils.setField(category10, "id", 10L);
+
+        given(categoryRepository.findAllByIds(anyList())).willReturn(List.of(category10));
+
+        // when & then
+        assertThatThrownBy(() -> productService.updateProduct(cmd))
+            .isInstanceOf(BusinessException.class)
+            .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CATEGORY_NOT_FOUND);
     }
 }

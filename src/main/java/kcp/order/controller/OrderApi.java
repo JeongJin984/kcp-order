@@ -57,7 +57,7 @@ public class OrderApi {
         Page<OrderDetail> orders = orderService.getOrders(
             new OrderSearchCmd(
                 hasText(orderAtSt) ? LocalDate.parse(orderAtSt).atStartOfDay() : null,
-                hasText(orderAtEd) ? LocalDate.parse(orderAtEd).atStartOfDay() : null,
+                hasText(orderAtEd) ? LocalDate.parse(orderAtEd).plusDays(1).atStartOfDay() : null,
                 productName,
                 hasText(status) ? OrderStatus.of(status.split(",")): null
             ), PageRequest.of(pageNum, size)
