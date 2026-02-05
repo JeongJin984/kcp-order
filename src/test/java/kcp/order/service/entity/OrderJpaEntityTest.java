@@ -131,6 +131,6 @@ class OrderJpaEntityTest {
     }
 
     private ProductJpaEntity createProduct(String name, int price, int stock) {
-        return ProductJpaEntity.createProduct(name, new BigDecimal(price), stock, List.of(CategoryJpaEntity.createTestEmptyCategory()));
+        return ProductJpaEntity.createProduct(name, new BigDecimal(price), stock, List.of(CategoryJpaEntity.createTestEmptyCategory("categoryA")));
     }
 }

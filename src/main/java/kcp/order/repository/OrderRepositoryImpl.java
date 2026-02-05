@@ -48,7 +48,7 @@ public class OrderRepositoryImpl implements OrderRepository {
                 .where(orderJpaEntity.id.eq(id))
                 .distinct()
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-                .setHint("javax.persistence.lock.timeout", 3000)
+                .setHint("jakarta.persistence.lock.timeout", 3000)
                 .fetchOne()
         );
     }

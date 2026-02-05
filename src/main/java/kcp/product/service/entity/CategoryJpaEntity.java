@@ -31,7 +31,9 @@ public class CategoryJpaEntity {
     @LastModifiedDate
     private LocalDateTime modifiedAt;
 
-    public static CategoryJpaEntity createTestEmptyCategory() {
-        return new CategoryJpaEntity();
+    public static CategoryJpaEntity createTestEmptyCategory(String name) {
+        CategoryJpaEntity category = new CategoryJpaEntity();
+        category.name = name;
+        return category;
     }
 }
