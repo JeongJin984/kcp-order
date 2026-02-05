@@ -21,6 +21,7 @@ public interface ProductRepository {
     List<ProductJpaEntity> findAllByIds(Iterable<Long> ids);
 
     ProductJpaEntity save(ProductJpaEntity product);
+    ProductJpaEntity saveAndFlush(ProductJpaEntity product);
 
     Page<ProductDetail> findSliceOrderByCreatedAt(ProductSearchCmd command, Pageable page);
 

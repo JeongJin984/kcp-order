@@ -53,6 +53,11 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public ProductJpaEntity saveAndFlush(ProductJpaEntity product) {
+        return productJpaRepository.saveAndFlush(product);
+    }
+
+    @Override
     public Page<ProductDetail> findSliceOrderByCreatedAt(ProductSearchCmd command, Pageable page) {
 
         // 1) Product Entity 조회 (페이징 적용)

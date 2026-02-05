@@ -39,14 +39,16 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
+    public OrderJpaEntity saveAndFlush(OrderJpaEntity order) {
+        return orderJpaRepository.saveAndFlush(order);
+    }
+
+    @Override
     public Optional<OrderJpaEntity> findByIdWithProductAndLock(Long id) {
         return Optional.ofNullable(
             queryFactory
                 .selectFrom(orderJpaEntity)
-                .join(orderJpaEntity.orderItems, orderItemJpaEntity).fetchJoin()
-                .join(orderItemJpaEntity.product, productJpaEntity).fetchJoin()
                 .where(orderJpaEntity.id.eq(id))
-                .distinct()
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .setHint("jakarta.persistence.lock.timeout", 3000)
                 .fetchOne()
