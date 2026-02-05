@@ -2,7 +2,6 @@ package kcp.order.service;
 
 import kcp.common.exception.BusinessException;
 import kcp.common.exception.ErrorCode;
-import kcp.common.exception.InvalidOrderStatusException;
 import kcp.order.service.dto.OrderCreateCmd;
 import kcp.order.service.dto.OrderDetail;
 import kcp.order.service.dto.OrderSearchCmd;
@@ -19,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional(readOnly = true)
@@ -70,6 +70,19 @@ public class OrderService {
     public OrderDetail changeStatus(Long orderId, OrderStatus nextStatus) {
         OrderJpaEntity order = orderRepository.findByIdWithProductAndLock(orderId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND, "order not found: orderId = {}", orderId));
+
+        // [핵심] 재고 변경이 가능한 상태 변경(COMPLETED/CANCELED 등)이라면
+        // Product row를 명시적으로 FOR UPDATE로 잠근 뒤에 재고를 깎아야 정합성이 보장됩니다.
+        List<Long> productIdsToLock = order.getOrderItems().stream()
+            .map(OrderItemJpaEntity::getProduct)
+            .map(ProductJpaEntity::getId)
+            .distinct()
+            .sorted() // 데드락 확률 감소: 항상 동일한 순서로 락 획득
+            .toList();
+
+        if (!productIdsToLock.isEmpty()) {
+            productRepository.findByIdsWithLock(productIdsToLock);
+        }
 
         order.updateOrderStatus(nextStatus);
 

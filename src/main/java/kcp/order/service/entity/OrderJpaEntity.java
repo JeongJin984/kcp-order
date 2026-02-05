@@ -2,6 +2,7 @@ package kcp.order.service.entity;
 
 import jakarta.persistence.*;
 import kcp.common.exception.InvalidOrderStatusException;
+import kcp.product.service.entity.ProductJpaEntity;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -76,10 +77,10 @@ public class OrderJpaEntity {
     // 비즈니스 로직: 주문 완료 (재고 차감 발생)
     private void complete() {
         if (this.status != ACCEPTED) {
-            throw new InvalidOrderStatusException(this.status, ACCEPTED);
+            throw new InvalidOrderStatusException(this.status, COMPLETED);
         }
-        this.status = COMPLETED;
         orderItems.forEach(OrderItemJpaEntity::reduceProductStock);
+        this.status = COMPLETED;
     }
 
     // 비즈니스 로직: 주문 취소 (완료 상태였다면 재고 복구)
