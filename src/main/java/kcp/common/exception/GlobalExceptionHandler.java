@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         if (e.getRequiredType() != null && e.getRequiredType().isEnum()) {
-            log.info("잘못된 파라미터 값입니다. 허용된 값: {}}", Arrays.toString(e.getRequiredType().getEnumConstants()));
+            log.info("잘못된 파라미터 값입니다. 허용된 값: {}", Arrays.toString(e.getRequiredType().getEnumConstants()));
         } else {
             log.info("'{}'은(는) 유효하지 않은 값입니다.", e.getValue());
         }
@@ -114,9 +114,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
-        log.error("Exception: {}", e.getMessage());
+        log.error("Exception", e);
         return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(ErrorResponse.of(ErrorCode.INTERNAL_SERVER_ERROR));
     }
 
