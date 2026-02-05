@@ -1,6 +1,7 @@
 package kcp.order.service.entity;
 
 import kcp.common.exception.InvalidOrderStatusException;
+import kcp.common.exception.OutOfStockException;
 import kcp.product.service.entity.CategoryJpaEntity;
 import kcp.product.service.entity.ProductJpaEntity;
 import org.junit.jupiter.api.DisplayName;
@@ -81,6 +82,20 @@ class OrderJpaEntityTest {
         // when & then
         assertThatThrownBy(() -> order.updateOrderStatus(OrderStatus.COMPLETED))
                 .isInstanceOf(InvalidOrderStatusException.class);
+    }
+
+    @Test
+    @DisplayName("주문 완료 시 재고 부족하면 OutOfStockException 발생")
+    void complete_outOfStock_throwsException() {
+        // given
+        ProductJpaEntity product = createProduct("상품A", 1000, 1);
+        OrderItemJpaEntity orderItem = OrderItemJpaEntity.createOrderItem(product, new BigDecimal("1000"), 2);
+        OrderJpaEntity order = OrderJpaEntity.createOrder(List.of(orderItem));
+        order.updateOrderStatus(OrderStatus.ACCEPTED);
+
+        // when & then
+        assertThatThrownBy(() -> order.updateOrderStatus(OrderStatus.COMPLETED))
+                .isInstanceOf(OutOfStockException.class);
     }
 
     @Test

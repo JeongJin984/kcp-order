@@ -5,6 +5,7 @@ import kcp.common.exception.ErrorCode;
 import kcp.common.exception.InvalidOrderStatusException;
 import kcp.order.service.dto.OrderCreateCmd;
 import kcp.order.service.dto.OrderDetail;
+import kcp.order.service.entity.OrderItemJpaEntity;
 import kcp.order.service.entity.OrderJpaEntity;
 import kcp.order.service.entity.OrderStatus;
 import kcp.order.service.repository.OrderRepository;
@@ -154,6 +155,25 @@ class OrderServiceTest {
         assertThatThrownBy(() -> orderService.changeStatus(orderId, OrderStatus.COMPLETED))
             .isInstanceOf(InvalidOrderStatusException.class)
             .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_ORDER_STATUS);
+    }
+
+    @Test
+    @DisplayName("주문 완료 시 재고 부족하면 OutOfStockException 발생")
+    void changeStatus_complete_outOfStock_throwsException() {
+        // given
+        Long orderId = 1L;
+        ProductJpaEntity product = createProduct("상품A", 1000, 1);
+        OrderItemJpaEntity orderItem = OrderItemJpaEntity.createOrderItem(product, product.getPrice(), 2);
+        OrderJpaEntity order = OrderJpaEntity.createOrder(List.of(orderItem));
+        
+        // WAIT -> ACCEPTED (상태 변경을 위해 미리 설정)
+        order.updateOrderStatus(OrderStatus.ACCEPTED);
+        
+        given(orderRepository.findByIdWithProductAndLock(orderId)).willReturn(Optional.of(order));
+
+        // when & then
+        assertThatThrownBy(() -> orderService.changeStatus(orderId, OrderStatus.COMPLETED))
+            .isInstanceOf(kcp.common.exception.OutOfStockException.class);
     }
 
     private ProductJpaEntity createProduct(String name, int price, int stock) {
