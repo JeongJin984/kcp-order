@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@NoArgsConstructor(access = AccessLevel.PUBLIC)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "category")
 @EntityListeners(AuditingEntityListener.class)
 public class CategoryJpaEntity {
@@ -30,4 +30,8 @@ public class CategoryJpaEntity {
     @Column(name = "modified_at")
     @LastModifiedDate
     private LocalDateTime modifiedAt;
+
+    public static CategoryJpaEntity createTestEmptyCategory() {
+        return new CategoryJpaEntity();
+    }
 }

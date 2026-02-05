@@ -27,7 +27,7 @@ class OrderJpaEntityTest {
         // then
         assertThat(order.getStatus()).isEqualTo(OrderStatus.WAIT);
         assertThat(order.getOrderItems()).hasSize(1);
-        assertThat(order.getOrderItems().get(0).getOrder()).isEqualTo(order);
+        assertThat(order.getOrderItems().getFirst().getOrder()).isEqualTo(order);
     }
 
     @Test
@@ -116,6 +116,6 @@ class OrderJpaEntityTest {
     }
 
     private ProductJpaEntity createProduct(String name, int price, int stock) {
-        return ProductJpaEntity.createProduct(name, new BigDecimal(price), stock, List.of(new CategoryJpaEntity()));
+        return ProductJpaEntity.createProduct(name, new BigDecimal(price), stock, List.of(CategoryJpaEntity.createTestEmptyCategory()));
     }
 }

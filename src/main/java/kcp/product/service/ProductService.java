@@ -34,17 +34,25 @@ public class ProductService {
         return ProductDetail.from(productRepository.save(product));
     }
 
-    // 카테고리별 목록 조회 (페이징)
+    /**
+     * 상품 조회(다건, 페이징)
+     **/
     public Page<ProductDetail> getProducts(ProductSearchCmd command, Pageable pageable) {
         return productRepository.findSliceOrderByCreatedAt(command, pageable);
     }
 
+    /**
+     * 상품 조회(단건)
+     **/
     public ProductDetail getProduct(Long productId) {
-        return productRepository.findById(productId)
-            .map(ProductDetail::from)
+        ProductJpaEntity product = productRepository.findById(productId)
             .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "product not found: id = {}", productId));
+
+        return ProductDetail.from(product);
     }
 
+
+    @Transactional
     public ProductDetail updateProduct(ProductUpdateCmd cmd) {
         ProductJpaEntity product = productRepository.findById(cmd.productId())
             .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND, "product not found: id = {}", cmd.productId()));

@@ -28,7 +28,7 @@ public class OrderService {
     private final ProductRepository productRepository;
 
     /**
-     * 주문 조회(다건)
+     * 주문 조회(다건, 페이징)
      */
     public Page<OrderDetail> getOrders(OrderSearchCmd cmd, Pageable page) {
         return orderRepository.findSliceOrderByOrderDate(cmd, page);

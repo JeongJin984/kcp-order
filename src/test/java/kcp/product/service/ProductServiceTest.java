@@ -44,7 +44,7 @@ class ProductServiceTest {
     void createProduct_success() {
         // given
         ProductCreateCmd cmd = new ProductCreateCmd(List.of(1L), "상품A", new BigDecimal("1000"), 10);
-        CategoryJpaEntity category = new CategoryJpaEntity();
+        CategoryJpaEntity category = CategoryJpaEntity.createTestEmptyCategory();
         given(categoryRepository.findAllByIds(cmd.categoryId())).willReturn(List.of(category));
         given(productRepository.save(any(ProductJpaEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
 
@@ -74,7 +74,7 @@ class ProductServiceTest {
     void getProduct_success() {
         // given
         Long productId = 1L;
-        ProductJpaEntity product = ProductJpaEntity.createProduct("상품A", new BigDecimal("1000"), 10, List.of(new CategoryJpaEntity()));
+        ProductJpaEntity product = ProductJpaEntity.createProduct("상품A", new BigDecimal("1000"), 10, List.of(CategoryJpaEntity.createTestEmptyCategory()));
         given(productRepository.findById(productId)).willReturn(Optional.of(product));
 
         // when
@@ -102,7 +102,7 @@ class ProductServiceTest {
     void updateProduct_success() {
         // given
         ProductUpdateCmd cmd = new ProductUpdateCmd(1L, "수정상품", new BigDecimal("2000"), 20, List.of(1L));
-        ProductJpaEntity product = ProductJpaEntity.createProduct("상품A", new BigDecimal("1000"), 10, List.of(new CategoryJpaEntity()));
+        ProductJpaEntity product = ProductJpaEntity.createProduct("상품A", new BigDecimal("1000"), 10, List.of(CategoryJpaEntity.createTestEmptyCategory()));
         given(productRepository.findById(cmd.productId())).willReturn(Optional.of(product));
         given(productRepository.save(any(ProductJpaEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
 
