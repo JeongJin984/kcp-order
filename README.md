@@ -5,6 +5,7 @@
 "**어떤 문제를 만났고, 어떻게 해결했는지**"를 강조하여 작성했습니다.
 
 - **지원자명**: 남정진
+- **연락처**: philipwq3963@gmail.com
 
 ## 📦 Order & Product Management System
 
