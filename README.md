@@ -97,6 +97,8 @@ kcp
   - 정의된 매핑 규칙(Map)을 위반할 경우, ERROR 레벨 로그와 StackTrace를 남겨 개발자가 즉시 인지하도록 유도합니다. 
 - **Client Response (사용자 응답):** 내부 로직이 어떻게 동작하든, 클라이언트에게는 항상 통일된 포맷(ErrorResponse)의 400/404/500 응답을 보장합니다.
 
+예로 BusinessException을 상속한 OutOfStockException, InvalidOrderStatusException은 Exception 발생 시 자동으로 log를 작성하기 위해 상속을 하였으며 Exception 생성, 로그 작성에 필요한 파라미터를 생성자에 넣어 가용성과 엄격함을 만족하였습니다. 
+
 ### 3. 고성능 쿼리를 위한 인덱스(Index) 전략
 
 단순한 조회를 넘어, 페이징과 정렬 성능을 최적화하기 위해 복합 인덱스를 설계했습니다.
@@ -116,7 +118,9 @@ kcp
 
 - 동시성 제어 (Lock Escalation 방지)
   - 인덱스: idx_order_item_order_id, idx_order_item_product_id
-  - 의도: 비관적 락(Pessimistic Lock) 사용 시, FK 컬럼에 인덱스가 없어 테이블 전체에 락이 걸리는 치명적인 문제를 방지했습니다.
+  - 의도: 비관적 락(Pessimistic Lock) 사용 시, FK 컬럼에 인덱스가 없어 테이블 전체에 락이 걸리는 치명적인 문제를 방지했습니다.(H2에서는 Join, where in 에 대한 비관적 락이 정상적으로 작동하지 않아 단일 조회로 락을 획득하여 필요 없지만 운영환경(MySQL, PostgreSQL...)에서 필요)
+
+- 상품명 검색이 빈번하다면 CREATE INDEX idx_product_name_created ON product(name, created_at DESC) 같은 검색 전용 인덱스가 추가로 필요
 
 ### 4. 비관적 락(Pessimistic Lock)을 활용한 동시성 제어
 
