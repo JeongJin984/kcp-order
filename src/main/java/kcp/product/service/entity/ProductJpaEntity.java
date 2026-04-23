@@ -79,7 +79,7 @@ public class ProductJpaEntity {
     public void decreaseStock(int quantity) {
         int restStock = this.stockQuantity - quantity;
         if (restStock < 0) {
-            throw new OutOfStockException(quantity, this.stockQuantity);
+            throw new BusinessException(ErrorCode.STOCK_SHORTAGE, "없음");
         }
         this.stockQuantity = restStock;
     }

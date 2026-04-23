@@ -1,12 +1,5 @@
 # Order & Product Management System
 
-해당 프로젝트는 과제 제출을 위해 작성되었습니다. 
-
-"**어떤 문제를 만났고, 어떻게 해결했는지**"를 강조하여 작성했습니다.
-
-- **지원자**: 남정진
-- **연락처**: philipwq3963@gmail.com
-
 ## 📦 Order & Product Management System
 
 Spring Boot 3.5.10와 JPA를 기반으로 구축한 주문 및 상품 관리 API 서버입니다. 대규모 트래픽을 고려한 인덱스 설계, 비관적 락을 활용한 동시성 제어, 그리고 견고한 예외 처리 전략에 중점을 두었습니다.
